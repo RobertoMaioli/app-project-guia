@@ -1,0 +1,47 @@
+# Expo / React Native
+node_modules/
+.expo/
+.expo-shared/
+dist/
+web-build/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# Metro
+.metro-health-check*
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Native
+android/
+ios/
+*.apk
+*.aab
+*.ipa
+
+# macOS
+.DS_Store
+
+# Logs
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.log
+
+# Editors
+.vscode/
+.idea/
+
+# Strapi (backend, if kept in same repo)
+backend/node_modules/
+backend/.tmp/
+backend/build/
+backend/.cache/
+backend/exports/
