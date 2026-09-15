@@ -25,13 +25,18 @@ App de curadoria de lugares — restaurantes, serviços e experiências verifica
 
 ### Backend (`/backend`)
 
+API customizada — **não** é mais Strapi. Motivo: já existe um site (PHP puro) em produção com painel admin próprio gerenciando estabelecimentos/categorias num banco **MySQL** existente. Em vez de duplicar essa gestão num CMS novo, construímos uma API leve que lê/escreve nesse mesmo banco, mantendo site e app sincronizados numa única fonte de dados. Ver [CLAUDE.md](CLAUDE.md) para o racional completo.
+
 | Ferramenta | Versão | Função |
 |---|---|---|
-| [Strapi](https://strapi.io) | 5.x | CMS headless / API REST + painel admin |
 | Node.js | 24.x (LTS) | runtime |
-| PostgreSQL | 16.x | banco de dados |
-| Docker / Docker Compose | — | empacotamento do Strapi + Postgres |
-| `@strapi/provider-upload-aws-s3` | — | upload de fotos direto pro S3 |
+| Fastify | 5.x | framework HTTP da API |
+| TypeScript | 5.x | linguagem |
+| Prisma ORM | 6.x (não 7 — o driver adapter de MySQL do Prisma 7 depende de um pacote com vulnerabilidade sem correção; não 8, ainda sem suporte a MySQL) | acesso tipado ao MySQL existente, sem alterar o schema do site |
+| MySQL | (o mesmo banco que o site atual já usa) | banco de dados |
+| JWT (`@fastify/jwt`) | — | autenticação das contas de usuário do app |
+| AWS SDK (`@aws-sdk/client-s3`) | — | upload de fotos direto pro S3 |
+| Docker / Docker Compose | — | empacotamento da API |
 
 ### Infraestrutura
 
@@ -41,7 +46,7 @@ App de curadoria de lugares — restaurantes, serviços e experiências verifica
 | Nginx + Certbot (Let's Encrypt) | reverse proxy e SSL grátis, subdomínio `api.SEUDOMINIO` |
 | AWS S3 | armazenamento das fotos dos estabelecimentos |
 | AWS CloudFront (opcional) | CDN das fotos |
-| Lightsail Automatic Snapshots + `pg_dump` → S3 | backup |
+| Lightsail Automatic Snapshots + `mysqldump` → S3 | backup |
 | GitHub Actions | deploy automático no push pra `main` |
 
 ## Estrutura do repositório
@@ -49,7 +54,7 @@ App de curadoria de lugares — restaurantes, serviços e experiências verifica
 ```
 app-project-guia/
 ├── app/                    # Expo / React Native (TypeScript)
-├── backend/                # Strapi + Dockerfile + docker-compose.yml
+├── backend/                # API Node/Fastify + Prisma + Dockerfile + docker-compose.yml
 ├── .github/workflows/      # CI/CD
 ├── CLAUDE.md
 └── README.md
@@ -57,4 +62,4 @@ app-project-guia/
 
 ## Status
 
-Projeto em fase de definição de arquitetura — scaffold do app e do backend ainda não iniciado. Etapas detalhadas em [CLAUDE.md](CLAUDE.md#roadmap-etapas).
+Fundação concluída: app + backend + banco local + autenticação + navegação testados de ponta a ponta num dispositivo real. Próximo bloco: construir as telas reais do app seguindo o design de referência. Etapas detalhadas em [CLAUDE.md](CLAUDE.md#roadmap-etapas).

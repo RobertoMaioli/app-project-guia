@@ -1,0 +1,262 @@
+// Schema escrito à mão a partir do DDL real do banco do site (dump fornecido em 2026-09-15).
+// Os modelos abaixo marcados "existente" mapeiam tabelas que o site em PHP já usa e gerencia —
+// a API só LÊ dessas tabelas, nunca deve rodar `prisma migrate` sobre elas.
+// Os modelos marcados "novo" são exclusivos do app e serão criados via migration própria.
+// Confirmar contra `prisma db pull` num ambiente com acesso real ao banco antes do primeiro deploy.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Existente: catálogo de estabelecimentos ----------
+
+model Categoria {
+  id        Int      @id @default(autoincrement()) @db.UnsignedInt
+  slug      String   @unique @db.VarChar(80)
+  label     String   @db.VarChar(100)
+  icon      String   @default("pin") @db.VarChar(50)
+  descricao String?  @db.Text
+  ordem     Int      @default(0) @db.UnsignedTinyInt
+  ativo     Boolean  @default(true)
+  criadoEm  DateTime @default(now()) @map("criado_em")
+
+  lugares Lugar[]
+
+  @@map("categorias")
+}
+
+model Lugar {
+  id               Int       @id @default(autoincrement()) @db.UnsignedInt
+  empresaId        Int?      @map("empresa_id")
+  slug             String    @unique @db.VarChar(160)
+  nome             String    @db.VarChar(160)
+  descricao        String?   @db.Text
+  descricaoExtra   String?   @map("descricao_extra") @db.Text
+  categoriaId      Int       @map("categoria_id") @db.UnsignedInt
+  catLabel         String?   @map("cat_label") @db.VarChar(100)
+  badge            String?   @db.VarChar(50)
+  endereco         String?   @db.VarChar(255)
+  enderecoNumero   String?   @map("endereco_numero") @db.VarChar(20)
+  bairro           String?   @db.VarChar(100)
+  cep              String?   @db.VarChar(10)
+  lat              Decimal?  @db.Decimal(10, 7)
+  lng              Decimal?  @db.Decimal(10, 7)
+  telefone         String?   @db.VarChar(30)
+  email            String?   @db.VarChar(150)
+  site             String?   @db.VarChar(255)
+  instagram        String?   @db.VarChar(100)
+  facebook         String?   @db.VarChar(120)
+  tiktok           String?   @db.VarChar(120)
+  googlePlaceId    String?   @map("google_place_id") @db.VarChar(255)
+  googleSyncedAt   DateTime? @map("google_synced_at")
+  whatsapp         String?   @db.VarChar(30)
+  precoNivel       PrecoNivel @default(medio) @map("preco_nivel")
+  precoSimbolo     String?   @default("R$$") @map("preco_simbolo") @db.VarChar(10)
+  precoRange       String?   @map("preco_range") @db.VarChar(80)
+  fotoPrincipal    String?   @map("foto_principal") @db.VarChar(255)
+  rating           Decimal   @default(0.0) @db.Decimal(2, 1)
+  totalReviews     Int       @default(0) @map("total_reviews") @db.UnsignedInt
+  ratingQualidade    Decimal @default(0.0) @map("rating_qualidade") @db.Decimal(2, 1)
+  ratingLocalizacao  Decimal @default(0.0) @map("rating_localizacao") @db.Decimal(2, 1)
+  ratingAtendimento  Decimal @default(0.0) @map("rating_atendimento") @db.Decimal(2, 1)
+  ratingCusto        Decimal @default(0.0) @map("rating_custo") @db.Decimal(2, 1)
+  abertoAgora      Boolean   @default(false) @map("aberto_agora")
+  ativo            Boolean   @default(true)
+  destaque         Boolean   @default(false)
+  plano            Plano     @default(essencial)
+  criadoEm         DateTime  @default(now()) @map("criado_em")
+  atualizadoEm     DateTime  @default(now()) @updatedAt @map("atualizado_em")
+
+  categoria   Categoria      @relation(fields: [categoriaId], references: [id])
+  fotos       Foto[]
+  horarios    Horario[]
+  avaliacoes  Avaliacao[]
+  servicos    LugarServico[]
+  tags        LugarTag[]
+  favoritos   AppFavorito[]
+  metricas    AppMetrica[]
+
+  @@index([categoriaId])
+  @@index([ativo])
+  @@index([destaque])
+  @@map("lugares")
+}
+
+enum PrecoNivel {
+  barato
+  medio
+  alto
+  luxo
+}
+
+enum Plano {
+  essencial
+  profissional
+  premium
+}
+
+model Foto {
+  id        Int      @id @default(autoincrement()) @db.UnsignedInt
+  lugarId   Int      @map("lugar_id") @db.UnsignedInt
+  url       String   @db.VarChar(255)
+  alt       String?  @db.VarChar(160)
+  principal Boolean  @default(false)
+  ordem     Int      @default(0) @db.UnsignedTinyInt
+  criadoEm  DateTime @default(now()) @map("criado_em")
+
+  lugar Lugar @relation(fields: [lugarId], references: [id], onDelete: Cascade)
+
+  @@index([lugarId])
+  @@map("fotos")
+}
+
+model Horario {
+  id         Int      @id @default(autoincrement()) @db.UnsignedInt
+  lugarId    Int      @map("lugar_id") @db.UnsignedInt
+  diaSemana  Int      @map("dia_semana") @db.TinyInt
+  horaAbre   DateTime? @map("hora_abre") @db.Time()
+  horaFecha  DateTime? @map("hora_fecha") @db.Time()
+  fechado    Boolean  @default(false)
+  diaTodo    Boolean  @default(false) @map("dia_todo")
+
+  lugar Lugar @relation(fields: [lugarId], references: [id], onDelete: Cascade)
+
+  @@unique([lugarId, diaSemana])
+  @@map("horarios")
+}
+
+// Só leitura no app — sempre filtrar aprovado = true.
+// Sem fonte "app": a decisão foi não ter avaliação feita pelo app, só exibir as do Google já sincronizadas.
+model Avaliacao {
+  id             Int       @id @default(autoincrement()) @db.UnsignedInt
+  lugarId        Int       @map("lugar_id") @db.UnsignedInt
+  fonte          FonteAvaliacao @default(manual)
+  fonteId        String?   @map("fonte_id") @db.VarChar(100)
+  autorNome      String?   @map("autor_nome") @db.VarChar(100)
+  autorFoto      String?   @map("autor_foto") @db.VarChar(255)
+  nota           Decimal   @default(5.0) @db.Decimal(2, 1)
+  texto          String?   @db.Text
+  dataAvaliacao  DateTime? @map("data_avaliacao") @db.Date
+  aprovado       Boolean   @default(true)
+  criadoEm       DateTime  @default(now()) @map("criado_em")
+
+  lugar Lugar @relation(fields: [lugarId], references: [id], onDelete: Cascade)
+
+  @@index([lugarId, aprovado])
+  @@map("avaliacoes")
+}
+
+enum FonteAvaliacao {
+  google
+  tripadvisor
+  manual
+}
+
+model Servico {
+  id   Int    @id @default(autoincrement()) @db.UnsignedInt
+  nome String @unique @db.VarChar(80)
+  icon String? @default("verified") @db.VarChar(50)
+
+  lugares LugarServico[]
+
+  @@map("servicos")
+}
+
+model LugarServico {
+  lugarId   Int @map("lugar_id") @db.UnsignedInt
+  servicoId Int @map("servico_id") @db.UnsignedInt
+
+  lugar   Lugar   @relation(fields: [lugarId], references: [id], onDelete: Cascade)
+  servico Servico @relation(fields: [servicoId], references: [id], onDelete: Cascade)
+
+  @@id([lugarId, servicoId])
+  @@map("lugar_servicos")
+}
+
+model Tag {
+  id    Int    @id @default(autoincrement()) @db.UnsignedInt
+  slug  String @unique @db.VarChar(80)
+  label String @db.VarChar(80)
+
+  lugares LugarTag[]
+
+  @@map("tags")
+}
+
+model LugarTag {
+  lugarId Int @map("lugar_id") @db.UnsignedInt
+  tagId   Int @map("tag_id") @db.UnsignedInt
+
+  lugar Lugar @relation(fields: [lugarId], references: [id], onDelete: Cascade)
+  tag   Tag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([lugarId, tagId])
+  @@map("lugar_tags")
+}
+
+// ---------- Novo: exclusivo do app, tabelas isoladas ----------
+
+model AppUsuario {
+  id           Int      @id @default(autoincrement())
+  nome         String   @db.VarChar(120)
+  email        String   @unique @db.VarChar(180)
+  senhaHash    String?  @map("senha_hash") @db.VarChar(255)
+  googleId     String?  @unique @map("google_id") @db.VarChar(120)
+  fotoUrl      String?  @map("foto_url") @db.VarChar(255)
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @default(now()) @updatedAt @map("atualizado_em")
+
+  favoritos     AppFavorito[]
+  pushTokens    AppPushToken[]
+
+  @@map("app_usuarios")
+}
+
+model AppFavorito {
+  id         Int      @id @default(autoincrement())
+  usuarioId  Int      @map("usuario_id")
+  lugarId    Int      @map("lugar_id") @db.UnsignedInt
+  criadoEm   DateTime @default(now()) @map("criado_em")
+
+  usuario AppUsuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  lugar   Lugar      @relation(fields: [lugarId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, lugarId])
+  @@map("app_favoritos")
+}
+
+model AppPushToken {
+  id        Int      @id @default(autoincrement())
+  usuarioId Int      @map("usuario_id")
+  token     String   @unique @db.VarChar(255)
+  plataforma String  @db.VarChar(20) // "ios" | "android"
+  criadoEm DateTime  @default(now()) @map("criado_em")
+
+  usuario AppUsuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@map("app_push_tokens")
+}
+
+// Alimenta a tela "Área da empresa" (visualizações, cliques no WhatsApp, pedidos de rota).
+model AppMetrica {
+  id       Int         @id @default(autoincrement())
+  lugarId  Int         @map("lugar_id") @db.UnsignedInt
+  tipo     TipoMetrica
+  criadoEm DateTime    @default(now()) @map("criado_em")
+
+  lugar Lugar @relation(fields: [lugarId], references: [id], onDelete: Cascade)
+
+  @@index([lugarId, tipo, criadoEm])
+  @@map("app_metricas")
+}
+
+enum TipoMetrica {
+  visualizacao
+  whatsapp_click
+  rota_click
+}
