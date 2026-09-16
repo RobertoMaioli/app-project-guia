@@ -16,6 +16,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { StripeTexture } from '../components/StripeTexture';
 import { useStats } from '../api/stats';
+import { bodoniLineHeight } from '../theme/typography';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Capa'>;
 
@@ -198,9 +199,9 @@ const styles = StyleSheet.create({
   h1: {
     fontFamily: 'BodoniModa_400Regular',
     fontSize: 52,
-    // lineHeight >= fontSize pra não cortar ascendentes/descendentes no RN;
-    // o efeito compacto do handoff (.95) vem do h1TightLine (margem negativa).
-    lineHeight: 52 * 1.25,
+    // O efeito compacto do handoff (.95) vem do h1TightLine (margem negativa) —
+    // lineHeight em si fica no valor seguro padronizado (ver theme/typography.ts).
+    lineHeight: bodoniLineHeight(52),
     letterSpacing: 52 * -0.02,
     color: LIGHT,
   },
