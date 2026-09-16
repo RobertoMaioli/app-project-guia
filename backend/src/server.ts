@@ -5,6 +5,7 @@ import jwt from '@fastify/jwt';
 import { categoriasRoutes } from './routes/categorias';
 import { lugaresRoutes } from './routes/lugares';
 import { authRoutes } from './routes/auth';
+import { statsRoutes } from './routes/stats';
 
 const app = Fastify({ logger: true });
 
@@ -32,6 +33,7 @@ app.get('/health', async () => {
 app.register(categoriasRoutes, { prefix: '/categorias' });
 app.register(lugaresRoutes, { prefix: '/lugares' });
 app.register(authRoutes, { prefix: '/auth' });
+app.register(statsRoutes, { prefix: '/stats' });
 
 const port = Number(process.env.PORT ?? 3333);
 
