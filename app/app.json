@@ -6,10 +6,13 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "scheme": "guiacampobelo",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.guiacampobelo.app"
     },
     "android": {
+      "package": "com.guiacampobelo.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -24,7 +27,19 @@
     "plugins": [
       "expo-font",
       "expo-splash-screen",
-      "expo-secure-store"
-    ]
+      "expo-secure-store",
+      "expo-web-browser",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.171582326054-4v7i2154rvucr5e3c15tei47a2nfe0ab"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "a86e6139-534b-49dd-adbf-5b00c2e94c80"
+      }
+    }
   }
 }

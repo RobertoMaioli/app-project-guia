@@ -17,7 +17,8 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { GoogleButton } from '../components/GoogleButton';
 import { StripeTexture } from '../components/StripeTexture';
-import { login, saveToken } from '../api/auth';
+import { login, loginGoogle, saveToken } from '../api/auth';
+import { isGoogleSignInCancelled, signInWithGoogle } from '../hooks/useGoogleAuth';
 import { bodoniLineHeight } from '../theme/typography';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
@@ -44,6 +45,7 @@ export function LoginScreen({ navigation }: Props) {
   const [senhaFocused, setSenhaFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const errorOpacity = useRef(new Animated.Value(0)).current;
 
@@ -57,6 +59,24 @@ export function LoginScreen({ navigation }: Props) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   }, [error, errorOpacity]);
+
+  const handleGooglePress = async () => {
+    setError(null);
+    setGoogleLoading(true);
+    try {
+      const idToken = await signInWithGoogle();
+      if (!idToken) return;
+      const res = await loginGoogle(idToken);
+      await saveToken(res.token);
+      navigation.replace('Main');
+    } catch (err) {
+      if (!isGoogleSignInCancelled(err)) {
+        setError(err instanceof Error ? err.message : 'Não foi possível entrar com Google');
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
   const handleSubmit = async () => {
     setError(null);
@@ -162,7 +182,10 @@ export function LoginScreen({ navigation }: Props) {
             <Text style={styles.ctaText}>{loading ? 'ENTRANDO…' : 'ENTRAR'}</Text>
           </Pressable>
 
-          <GoogleButton />
+          <GoogleButton
+            label={googleLoading ? 'ENTRANDO…' : 'ENTRAR COM GOOGLE'}
+            onPress={handleGooglePress}
+          />
         </View>
 
         <View style={{ flex: 1 }} />
